@@ -19,7 +19,7 @@ from mezzanine.generic.forms import ThreadedCommentForm, RatingForm
 from mezzanine.generic.models import Keyword
 from mezzanine.utils.cache import add_cache_bypass
 from mezzanine.utils.deprecation import is_authenticated
-from mezzanine.utils.views import set_cookie, is_spam
+from mezzanine.utils.views import set_cookie, is_spam, automod_deems_it_bad
 from mezzanine.utils.importing import import_dotted_path
 
 
@@ -107,6 +107,11 @@ def comment(request, template="generic/comments.html", extra_context=None):
             return redirect(url)
         comment = form.save(request)
         response = redirect(add_cache_bypass(comment.get_absolute_url()))
+        text = form.cleaned_data['comment']
+        bad, scores = automod_deems_it_bad(text)
+        if bad:
+            error = 'automod no like: {} --- {}'.format(text, scores)
+            return HttpResponse(dumps({"errors": error}))
         # Store commenter's details in a cookie for 90 days.
         for field in ThreadedCommentForm.cookie_fields:
             cookie_name = ThreadedCommentForm.cookie_prefix + field
