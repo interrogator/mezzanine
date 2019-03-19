@@ -29,8 +29,6 @@ from mezzanine.utils.deprecation import is_authenticated
 from mezzanine.utils.importing import import_dotted_path
 from mezzanine.utils.sites import has_site_permission
 
-from buzzer import LanguageModel, Text
-
 
 def is_editable(obj, request):
     """
@@ -122,19 +120,6 @@ def is_spam_akismet(request, form, url):
 
     # Python 3 returns response as a bytestring, Python 2 as a regular str
     return response in (b'true', 'true')
-
-
-def automod_deems_it_bad(form):
-    """
-    First attempt at automoderation
-    """
-    model = LanguageModel('.')
-    text = Text(form)
-    scores = model.score(text)
-    for score in scores.values():
-        if score < 0:
-            return True, scores
-    return False, scores
 
 
 def is_spam(request, form, url):
