@@ -27,11 +27,12 @@ class ThreadedComment(Comment):
     inherits from Mezzanine's ``CurrentSiteManager``, so everything else
     site related is already provided.
     """
-
+    chamber = models.CharField(max_length=200, null=False)
     by_author = models.BooleanField(_("By the blog author"), default=False)
     replied_to = models.ForeignKey("self", on_delete=models.CASCADE, null=True,
                                     editable=False, related_name="comments")
     rating = RatingField(verbose_name=_("Rating"))
+    failed_automod = models.CharField(max_length=500)
 
     objects = CommentManager()
 
