@@ -1,7 +1,6 @@
-from __future__ import unicode_literals
-from future.builtins import str
+import requests
 
-from json import dumps
+from json import dumps, loads
 from string import punctuation
 
 from django.apps import apps
@@ -13,6 +12,8 @@ from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.utils.translation import ugettext_lazy as _
+
+from drum.chambers.models import Chamber
 
 from mezzanine.conf import settings
 from mezzanine.generic.forms import ThreadedCommentForm, RatingForm
@@ -44,7 +45,7 @@ def admin_keywords_submit(request):
         content_type='text/plain')
 
 
-def initial_validation(request, prefix):
+def initial_validation(request, prefix, score=None):
     """
     Returns the related model instance and post data to use in the
     comment/rating views below.
@@ -60,6 +61,7 @@ def initial_validation(request, prefix):
     which may have come from the session, for each of the comments and
     ratings view functions to deal with as needed.
     """
+    score = score or dict()
     post_data = request.POST
     login_required_setting_name = prefix.upper() + "S_ACCOUNT_REQUIRED"
     posted_session_key = "unauthenticated_" + prefix
@@ -90,6 +92,27 @@ def initial_validation(request, prefix):
     return obj, post_data
 
 
+def _get_scores(request, chamber_name, text):
+    lang_url = request.build_absolute_uri(reverse('evaluate'))
+    chamber = Chamber.objects.get(chamber=chamber_name)
+    automods = chamber._automod_config()
+    post_data = dict(text=text, config={}, automods=automods)
+    scores = requests.post(lang_url, json=post_data)
+    return scores.json(), automods
+
+
+def _score_below_threshold(scores, automods):
+    temp = '* "{}" automod needed {} points or more. You got {}.'
+    out = list()
+    for name, score in scores.items():
+        threshold = automods[name]
+        if score < threshold:
+            msg = temp.format(settings.EVALUATORS[name], threshold, score)
+            out.append(msg)
+    print('INFO', scores, automods, out)
+    return "<br>".join(out)
+
+
 def comment(request, template="generic/comments.html", extra_context=None):
     """
     Handle a ``ThreadedCommentForm`` submission and redirect back to its
@@ -102,16 +125,15 @@ def comment(request, template="generic/comments.html", extra_context=None):
     form_class = import_dotted_path(settings.COMMENT_FORM_CLASS)
     form = form_class(request, obj, post_data)
     if form.is_valid():
+        chamber = form.cleaned_data["chamber"]
+        text = form.cleaned_data["comment"]
         url = obj.get_absolute_url()
         if is_spam(request, form, url):
             return redirect(url)
-        comment = form.save(request)
+        scores, automods = _get_scores(request, chamber, text)
+        fail_info = _score_below_threshold(scores, automods)
+        comment = form.save(request, failed_automod=fail_info)
         response = redirect(add_cache_bypass(comment.get_absolute_url()))
-        # text = form.cleaned_data['comment']
-        # bad, scores = automod_deems_it_bad(text)
-        # if bad:
-        #     error = 'automod no like: {} --- {}'.format(text, scores)
-        #    return HttpResponse(dumps({"errors": error}))
         # Store commenter's details in a cookie for 90 days.
         for field in ThreadedCommentForm.cookie_fields:
             cookie_name = ThreadedCommentForm.cookie_prefix + field
