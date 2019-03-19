@@ -1,6 +1,6 @@
 import requests
 
-from json import dumps, loads
+from json import dumps
 from string import punctuation
 
 from django.apps import apps
@@ -14,6 +14,7 @@ from django.template.response import TemplateResponse
 from django.utils.translation import ugettext_lazy as _
 
 from drum.chambers.models import Chamber
+from drum.links.models import Profile
 
 from mezzanine.conf import settings
 from mezzanine.generic.forms import ThreadedCommentForm, RatingForm
@@ -128,8 +129,19 @@ def comment(request, template="generic/comments.html", extra_context=None):
         chamber = form.cleaned_data["chamber"]
         text = form.cleaned_data["comment"]
         url = obj.get_absolute_url()
+
         if is_spam(request, form, url):
             return redirect(url)
+
+        # check if balance is too low
+        user_balance = Profile.objects.get(user=request.user).balance
+        min_comment_balance = Chamber.objects.get(chamber=chamber).min_comment_balance
+        if user_balance < min_comment_balance:
+            msg = "Balance ({}) too low to comment in '{}'. Minimum: {}"
+            form = msg.format(user_balance, chamber, min_comment_balance)
+            error(request, form)
+            return redirect(chamber)
+
         scores, automods = _get_scores(request, chamber, text)
         fail_info = _score_below_threshold(scores, automods)
         comment = form.save(request, failed_automod=fail_info)
