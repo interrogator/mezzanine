@@ -93,15 +93,19 @@ class KeywordsWidget(forms.MultiWidget):
 
 class ThreadedCommentForm(CommentForm, Html5Mixin):
 
-    name = forms.CharField(label=_("Name"), help_text=_("required"),
-                           max_length=50)
+    name = forms.CharField(label=_("Name"),
+                           max_length=50,
+                           widget=forms.HiddenInput())
     email = forms.EmailField(label=_("Email"),
-                             help_text=_("required (not published)"))
-    url = forms.URLField(label=_("Website"), help_text=_("optional"),
-                         required=False)
+                             widget=forms.HiddenInput())
+    # probably drop this soon
+    url = forms.URLField(label=_("Website"),
+                         required=False,
+                         widget=forms.HiddenInput())
+    chamber = forms.CharField(max_length=200, widget=forms.HiddenInput())
 
     # These are used to get/set prepopulated fields via cookies.
-    cookie_fields = ("name", "email", "url")
+    cookie_fields = ("name", "email", "url",)
     cookie_prefix = "mezzanine-comment-"
 
     def __init__(self, request, *args, **kwargs):
@@ -110,14 +114,15 @@ class ThreadedCommentForm(CommentForm, Html5Mixin):
         user, and apply some HTML5 attributes to the fields if the
         ``FORMS_USE_HTML5`` setting is ``True``.
         """
-        kwargs.setdefault("initial", {})
+        chamber = request.resolver_match.kwargs.get("chamber", "")
+        kwargs.setdefault("initial", {"chamber": chamber})
         user = request.user
         for field in ThreadedCommentForm.cookie_fields:
             cookie_name = ThreadedCommentForm.cookie_prefix + field
             value = request.COOKIES.get(cookie_name, "")
             if not value and is_authenticated(user):
                 if field == "name":
-                    value = user.get_full_name()
+                    value = user.username
                     if not value and user.username != user.email:
                         value = user.username
                 elif field == "email":
@@ -139,7 +144,7 @@ class ThreadedCommentForm(CommentForm, Html5Mixin):
         """
         return new
 
-    def save(self, request):
+    def save(self, request, failed_automod=""):
         """
         Saves a new comment and sends any notification emails.
         """
@@ -150,6 +155,8 @@ class ThreadedCommentForm(CommentForm, Html5Mixin):
         comment.by_author = request.user == getattr(obj, "user", None)
         comment.ip_address = ip_for_request(request)
         comment.replied_to_id = self.data.get("replied_to")
+        comment.failed_automod = failed_automod
+        comment.chamber = self.data.get("chamber", "")
 
         # Mezzanine's duplicate check that also checks `replied_to_id`.
         lookup = {
