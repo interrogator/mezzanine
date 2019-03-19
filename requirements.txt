@@ -1,6 +1,6 @@
 django-contrib-comments
 django<=2.1
-filebrowser_safe>=0.5.0
+https://github.com/interrogator/filebrowser-safe@master
 grappelli_safe>=0.5.0
 tzlocal>=1.0
 bleach>=2.0
