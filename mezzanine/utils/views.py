@@ -1,8 +1,4 @@
-from __future__ import division, unicode_literals
-
 import warnings
-
-from future.builtins import int
 
 from datetime import datetime, timedelta
 
@@ -42,9 +38,9 @@ def is_editable(obj, request):
     else:
         codename = get_permission_codename("change", obj._meta)
         perm = "%s.%s" % (obj._meta.app_label, codename)
-        return (is_authenticated(request.user) and
-                has_site_permission(request.user) and
-                request.user.has_perm(perm))
+        return (is_authenticated(request.user)
+                and has_site_permission(request.user)
+                and request.user.has_perm(perm))
 
 
 def ip_for_request(request):

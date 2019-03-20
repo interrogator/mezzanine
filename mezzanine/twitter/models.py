@@ -1,14 +1,7 @@
-from __future__ import unicode_literals
-from future.builtins import str
-
 from datetime import datetime
 import re
 
-try:
-    from urllib.parse import quote
-except ImportError:
-    # Python 2
-    from urllib import quote
+from urllib.parse import quote
 
 from django.db import models
 from django.utils.encoding import python_2_unicode_compatible

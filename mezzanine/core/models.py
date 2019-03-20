@@ -1,13 +1,9 @@
-from __future__ import unicode_literals
-from future.builtins import str
 from future.utils import with_metaclass
 
 from json import loads
-try:
-    from urllib.request import urlopen
-    from urllib.parse import urlencode
-except ImportError:
-    from urllib import urlopen, urlencode
+
+from urllib.request import urlopen
+from urllib.parse import urlencode
 
 from django.apps import apps
 from django.contrib.contenttypes.fields import GenericForeignKey

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import warnings
 
 from future.utils import with_metaclass

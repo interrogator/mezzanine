@@ -1,12 +1,6 @@
-from __future__ import absolute_import, division, unicode_literals
-from future.builtins import int, open, str
-
 from hashlib import md5
 import os
-try:
-    from urllib.parse import quote, unquote
-except ImportError:
-    from urllib import quote, unquote
+from urllib.parse import quote, unquote
 
 from django.apps import apps
 from django.contrib import admin

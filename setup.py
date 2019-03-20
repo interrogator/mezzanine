@@ -59,7 +59,6 @@ try:
             "beautifulsoup4 >= 4.5.3",
             "requests >= 2.1.0",
             "requests-oauthlib >= 0.4",
-            "future >= 0.9.0",
             "pillow",
             "chardet",
         ],

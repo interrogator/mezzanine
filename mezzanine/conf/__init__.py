@@ -3,10 +3,7 @@ Drop-in replacement for ``django.conf.settings`` that provides a
 consistent access method for settings defined in applications, the project
 or Django itself. Settings can also be made editable via the admin.
 """
-
-from __future__ import unicode_literals
 from weakref import WeakKeyDictionary
-from future.builtins import bytes, str
 
 from functools import partial
 from importlib import import_module

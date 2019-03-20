@@ -1,8 +1,5 @@
-from __future__ import division, unicode_literals
-
 from django.template import Context
 from django.template import Template
-from future.utils import native_str
 
 from unittest import skipUnless
 
@@ -38,7 +35,7 @@ class GenericTests(TestCase):
             response = self.client.post(reverse("rating"), data=data)
             # Django doesn't seem to support unicode cookie keys correctly on
             # Python 2. See https://code.djangoproject.com/ticket/19802
-            response.delete_cookie(native_str("mezzanine-rating"))
+            response.delete_cookie("mezzanine-rating")
         blog_post = BlogPost.objects.get(id=blog_post.id)
         count = len(settings.RATINGS_RANGE)
         _sum = sum(settings.RATINGS_RANGE)

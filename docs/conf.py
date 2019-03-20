@@ -10,9 +10,6 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
-
-from __future__ import unicode_literals
-
 from datetime import datetime
 import sys
 import os
