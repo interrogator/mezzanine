@@ -1,4 +1,4 @@
-import requests
+
 
 from json import dumps
 from string import punctuation
@@ -23,6 +23,7 @@ from mezzanine.utils.cache import add_cache_bypass
 from mezzanine.utils.deprecation import is_authenticated
 from mezzanine.utils.views import set_cookie, is_spam
 from mezzanine.utils.importing import import_dotted_path
+from mezzanine.utils.automod import get_automod_scores, score_below_threshold
 
 
 @staff_member_required
@@ -93,27 +94,6 @@ def initial_validation(request, prefix, score=None):
     return obj, post_data
 
 
-def _get_scores(request, chamber_name, text):
-    lang_url = request.build_absolute_uri(reverse('evaluate'))
-    chamber = Chamber.objects.get(chamber=chamber_name)
-    automods = chamber._automod_config()
-    post_data = dict(text=text, config={}, automods=automods)
-    scores = requests.post(lang_url, json=post_data)
-    return scores.json(), automods
-
-
-def _score_below_threshold(scores, automods):
-    temp = '* "{}" automod needed {} points or more. You got {}.'
-    out = list()
-    for name, score in scores.items():
-        threshold = automods[name]
-        if score < threshold:
-            msg = temp.format(settings.EVALUATORS[name], threshold, score)
-            out.append(msg)
-    print('INFO', scores, automods, out)
-    return "<br>".join(out)
-
-
 def comment(request, template="generic/comments.html", extra_context=None):
     """
     Handle a ``ThreadedCommentForm`` submission and redirect back to its
@@ -142,8 +122,8 @@ def comment(request, template="generic/comments.html", extra_context=None):
             error(request, form)
             return redirect(chamber)
 
-        scores, automods = _get_scores(request, chamber, text)
-        fail_info = _score_below_threshold(scores, automods)
+        scores, automods = get_automod_scores(request, chamber, text)
+        fail_info = score_below_threshold(scores, automods)
         comment = form.save(request, failed_automod=fail_info)
         response = redirect(add_cache_bypass(comment.get_absolute_url()))
         # Store commenter's details in a cookie for 90 days.
