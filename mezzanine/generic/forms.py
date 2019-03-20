@@ -192,9 +192,11 @@ class RatingForm(CommentSecurityForm):
     Form for a rating. Subclasses ``CommentSecurityForm`` to make use
     of its easy setup for generic relations.
     """
+    # todo: this is now broken. we should have a flag boolean, a tip boolean,
+    # and a tip amount. value should go back to relying on settings.RATINGS_RANGE
+    # (right now, 2 == tip and 3 == flag). also fix drum.js to handle this
     value = forms.ChoiceField(label="", widget=forms.RadioSelect,
-                              choices=list(zip(
-                                             *(settings.RATINGS_RANGE,) * 2)))
+                              choices=[(0, '0'), (1, '1'), (2, '2'), (3, '4')])
 
     def __init__(self, request, *args, **kwargs):
         self.request = request

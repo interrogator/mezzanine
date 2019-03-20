@@ -24,6 +24,7 @@ from mezzanine.utils.deprecation import is_authenticated
 from mezzanine.utils.views import set_cookie, is_spam
 from mezzanine.utils.importing import import_dotted_path
 from mezzanine.utils.automod import get_automod_scores, score_below_threshold
+from mezzanine.utils.rate import tip, flag
 
 
 @staff_member_required
@@ -149,8 +150,23 @@ def rating(request):
     if isinstance(response, HttpResponse):
         return response
     obj, post_data = response
+    rating = post_data['value']
     url = add_cache_bypass(obj.get_absolute_url().split("#")[0])
     response = redirect(url + "#rating-%s" % obj.id)
+
+    # this rating 2-3 thing is not good. right now the user can't click tip
+    # and select amount, or click flag and choose to stake or not. do not
+    # bother developing this stuff until we can get all the correct data
+    # into this form. this means we need a dropdown or a modal in frontend,
+    # which adds amount. for tip the amount should be customisable; for
+    # flag, amount is either chamber.remove_stake_amount or 0.
+    if rating in {2, 3}:
+        if rating == 2:
+            tip(request)
+        elif rating == 3:
+            flag(request)
+        return response
+
     rating_form = RatingForm(request, obj, post_data)
     if rating_form.is_valid():
         rating_form.save()
@@ -167,4 +183,3 @@ def rating(request):
         else:
             ratings = rating_form.previous + [rating_form.current]
         set_cookie(response, "mezzanine-rating", ",".join(ratings))
-    return response
